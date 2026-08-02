@@ -21,9 +21,17 @@ The probing routine itself was modeled on Ooznest's own WorkBee XYZ Touch Probe 
 
 ## Requirements
 
-- Duet Web Control **3.6** or newer
-- RepRapFirmware **3.3** or newer
+- RepRapFirmware **3.3** or newer — this is a hard requirement, since the macros rely on `param.*` macro-parameter support, which RRF only gained in 3.3.
+- Duet Web Control — **confirmed working on 3.6.x**. See the compatibility note below before installing on an older DWC.
 - A touch probe configured in RepRapFirmware as probe index 0 (`M558 ... P0`)
+
+### DWC version compatibility — please read if you're on DWC 3.5 or older
+
+The plugin's manifest doesn't restrict installation to a specific DWC version range, so the installer will let you install it on any DWC 3.x. In practice, though, it's only been confirmed to actually *run* on **DWC 3.6.x**. On older DWC (tested and confirmed broken on stock DWC 3.4.6, and on Ooznest's DWC 3.3.0-based WorkBee fork), the plugin **installs successfully but fails to start**, with a `ChunkLoadError` in the browser console when you try to launch it.
+
+This isn't a bug in the macros or a file-placement issue — it's been traced to a build-tooling mismatch: this plugin is compiled using the current DuetWebControl source tree's own build tooling, and older DWC releases' internal module-loading runtime doesn't seem to know how to load a plugin chunk built that way, regardless of where the files sit or what the manifest declares. It's left permissive intentionally so the community can help pin down exactly where the real cutoff is — DWC 3.5.x, in particular, is untested.
+
+**If you hit this**: please [open an issue](../../issues) with your exact DWC and RRF version so we can narrow down the actual compatibility floor.
 
 ## Installation
 
