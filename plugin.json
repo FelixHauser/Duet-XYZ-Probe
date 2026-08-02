@@ -2,7 +2,7 @@
     "id": "ProbePanel",
     "name": "Probe Panel",
     "author": "Felix Hauser",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "dwcVersion": "3.6",
     "rrfVersion": "3.3",
     "sbcDsfVersion": "",

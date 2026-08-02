@@ -32,8 +32,8 @@ On first launch, the plugin automatically deploys its macro files to `0:/macros/
 
 **Touch Probe Settings** (collapsible section):
 - **Feedrate** — probing speed (mm/min).
-- **Plate X / Y / Z Dimension** — physical size of your touch plate.
-- **X / Y / Z-Axis Offset** — distance from the plate's reference edges to your actual workpiece zero.
+- **Plate Thickness / Z Dimension** — thickness of your touch plate, since Z-probing touches its top face rather than the true stock surface.
+- **X / Y / Z-Axis Offset** — distance from the plate's reference edges to your actual workpiece zero. The plate is assumed to sit flush against the corner being probed, so X/Y zero is simply `offset + endmill radius` from the probed edge — no plate footprint size needed for that math.
 
 **Reset to Defaults** resets these settings fields back to their built-in defaults. It does **not** touch the macro files on the SD card.
 
@@ -57,13 +57,11 @@ Each template documents its own parameters, but for reference:
 |---|---|
 | `param.A` | Corner (`"FL"` \| `"FR"` \| `"BL"` \| `"BR"`) |
 | `param.B` | Endmill Diameter (mm) |
-| `param.C` | Plate X Dimension (mm) |
-| `param.D` | Plate Y Dimension (mm) |
-| `param.E` | Plate Z Dimension (mm) |
-| `param.F` | X-Axis Offset (mm) |
-| `param.G` | Y-Axis Offset (mm) |
-| `param.H` | Z-Axis Offset (mm) |
-| `param.I` | Feedrate (mm/min) |
+| `param.C` | Plate Thickness / Z Dimension (mm) |
+| `param.D` | X-Axis Offset (mm) |
+| `param.E` | Y-Axis Offset (mm) |
+| `param.F` | Z-Axis Offset (mm) |
+| `param.G` | Feedrate (mm/min) |
 
 ### Building a release zip
 

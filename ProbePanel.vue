@@ -162,34 +162,8 @@
 					<v-row dense>
 						<v-col cols="12" sm="4">
 							<v-text-field
-								:value="plateX"
-								label="X Dimension (mm)"
-								type="number"
-								outlined
-								dense
-								hide-details
-								step="0.1"
-								min="0"
-								@change="saveSetting('plateX', $event)"
-							/>
-						</v-col>
-						<v-col cols="12" sm="4">
-							<v-text-field
-								:value="plateY"
-								label="Y Dimension (mm)"
-								type="number"
-								outlined
-								dense
-								hide-details
-								step="0.1"
-								min="0"
-								@change="saveSetting('plateY', $event)"
-							/>
-						</v-col>
-						<v-col cols="12" sm="4">
-							<v-text-field
 								:value="plateZ"
-								label="Z Dimension (mm)"
+								label="Plate Thickness / Z Dimension (mm)"
 								type="number"
 								outlined
 								dense
@@ -257,8 +231,6 @@ const MACRO_PATH  = '0:/macros/ProbePanel'
 
 const DEFAULTS = {
 	endmillDia: 6.35,
-	plateX:     60,
-	plateY:     60,
 	plateZ:     10,
 	xOffset:    10,
 	yOffset:    10,
@@ -301,8 +273,6 @@ export default {
 			return store.state.machine.settings.plugins?.[PLUGIN_ID] ?? {};
 		},
 		endmillDia() { return this.pluginSettings.endmillDia ?? DEFAULTS.endmillDia; },
-		plateX()     { return this.pluginSettings.plateX     ?? DEFAULTS.plateX; },
-		plateY()     { return this.pluginSettings.plateY     ?? DEFAULTS.plateY; },
 		plateZ()     { return this.pluginSettings.plateZ     ?? DEFAULTS.plateZ; },
 		xOffset()    { return this.pluginSettings.xOffset    ?? DEFAULTS.xOffset; },
 		yOffset()    { return this.pluginSettings.yOffset    ?? DEFAULTS.yOffset; },
@@ -373,13 +343,11 @@ export default {
 				`M98 P"${MACRO_PATH}/${macro}"`,
 				`A"${this.selectedCorner}"`,
 				`B${this.endmillDia.toFixed(4)}`,
-				`C${this.plateX.toFixed(4)}`,
-				`D${this.plateY.toFixed(4)}`,
-				`E${this.plateZ.toFixed(4)}`,
-				`F${this.xOffset.toFixed(4)}`,
-				`G${this.yOffset.toFixed(4)}`,
-				`H${this.zOffset.toFixed(4)}`,
-				`I${Math.round(this.feedrate)}`,
+				`C${this.plateZ.toFixed(4)}`,
+				`D${this.xOffset.toFixed(4)}`,
+				`E${this.yOffset.toFixed(4)}`,
+				`F${this.zOffset.toFixed(4)}`,
+				`G${Math.round(this.feedrate)}`,
 			].join(' ');
 		},
 
