@@ -1,0 +1,10 @@
+{
+    "id": "ProbePanel",
+    "name": "Probe Panel",
+    "author": "Felix Hauser",
+    "version": "0.1.0",
+    "dwcVersion": "3.6",
+    "rrfVersion": "3.3",
+    "sbcDsfVersion": "",
+    "sbcPermissions": []
+}
