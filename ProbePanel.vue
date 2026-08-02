@@ -162,15 +162,41 @@
 					<v-row dense>
 						<v-col cols="12" sm="4">
 							<v-text-field
-								:value="plateZ"
-								label="Plate Thickness / Z Dimension (mm)"
+								:value="plateX"
+								label="Plate X Dimension (mm)"
 								type="number"
 								outlined
 								dense
 								hide-details
 								step="0.1"
 								min="0"
-								@change="saveSetting('plateZ', $event)"
+								@change="saveSetting('plateX', $event)"
+							/>
+						</v-col>
+						<v-col cols="12" sm="4">
+							<v-text-field
+								:value="plateY"
+								label="Plate Y Dimension (mm)"
+								type="number"
+								outlined
+								dense
+								hide-details
+								step="0.1"
+								min="0"
+								@change="saveSetting('plateY', $event)"
+							/>
+						</v-col>
+						<v-col cols="12" sm="4">
+							<v-text-field
+								:value="plateThickness"
+								label="Plate Thickness (mm)"
+								type="number"
+								outlined
+								dense
+								hide-details
+								step="0.001"
+								min="0"
+								@change="saveSetting('plateThickness', $event)"
 							/>
 						</v-col>
 					</v-row>
@@ -200,18 +226,6 @@
 								@change="saveSetting('yOffset', $event)"
 							/>
 						</v-col>
-						<v-col cols="12" sm="4">
-							<v-text-field
-								:value="zOffset"
-								label="Z-Axis Offset (mm)"
-								type="number"
-								outlined
-								dense
-								hide-details
-								step="0.001"
-								@change="saveSetting('zOffset', $event)"
-							/>
-						</v-col>
 					</v-row>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
@@ -230,12 +244,13 @@ const PLUGIN_ID   = 'ProbePanel'
 const MACRO_PATH  = '0:/macros/ProbePanel'
 
 const DEFAULTS = {
-	endmillDia: 6.35,
-	plateZ:     10,
-	xOffset:    10,
-	yOffset:    10,
-	zOffset:    5,
-	feedrate:   500,
+	endmillDia:     6.35,
+	plateX:         60,
+	plateY:         60,
+	plateThickness: 5,
+	xOffset:        10,
+	yOffset:        10,
+	feedrate:       500,
 }
 
 export default {
@@ -272,12 +287,13 @@ export default {
 		pluginSettings() {
 			return store.state.machine.settings.plugins?.[PLUGIN_ID] ?? {};
 		},
-		endmillDia() { return this.pluginSettings.endmillDia ?? DEFAULTS.endmillDia; },
-		plateZ()     { return this.pluginSettings.plateZ     ?? DEFAULTS.plateZ; },
-		xOffset()    { return this.pluginSettings.xOffset    ?? DEFAULTS.xOffset; },
-		yOffset()    { return this.pluginSettings.yOffset    ?? DEFAULTS.yOffset; },
-		zOffset()    { return this.pluginSettings.zOffset    ?? DEFAULTS.zOffset; },
-		feedrate()   { return this.pluginSettings.feedrate   ?? DEFAULTS.feedrate; },
+		endmillDia()     { return this.pluginSettings.endmillDia     ?? DEFAULTS.endmillDia; },
+		plateX()         { return this.pluginSettings.plateX         ?? DEFAULTS.plateX; },
+		plateY()         { return this.pluginSettings.plateY         ?? DEFAULTS.plateY; },
+		plateThickness() { return this.pluginSettings.plateThickness ?? DEFAULTS.plateThickness; },
+		xOffset()        { return this.pluginSettings.xOffset        ?? DEFAULTS.xOffset; },
+		yOffset()        { return this.pluginSettings.yOffset        ?? DEFAULTS.yOffset; },
+		feedrate()       { return this.pluginSettings.feedrate       ?? DEFAULTS.feedrate; },
 	},
 
 	async mounted() {
@@ -338,16 +354,42 @@ export default {
 			}
 		},
 
+		// Same corner-direction logic Ooznest's own touch probe panel uses: the plate is
+		// physically rotated so its ledge always sits on the corner being probed, which
+		// means for FR/BL the X and Y settings need to swap (the plate's own X side is
+		// now running along the machine's Y axis, and vice versa).
+		cornerParams() {
+			const corner = this.selectedCorner;
+			const xDirection      = (corner === 'FR' || corner === 'BR') ? -1 : 1;
+			const xProbeDirection = (corner === 'FR' || corner === 'BR') ? 1  : 0;
+			const yDirection      = (corner === 'BL' || corner === 'BR') ? -1 : 1;
+			const yProbeDirection = (corner === 'BL' || corner === 'BR') ? 1  : 0;
+
+			const swap = !(corner === 'FL' || corner === 'BR');
+			return {
+				xDirection, yDirection, xProbeDirection, yProbeDirection,
+				xOffset:    swap ? this.yOffset : this.xOffset,
+				yOffset:    swap ? this.xOffset : this.yOffset,
+				xDimension: swap ? this.plateY  : this.plateX,
+				yDimension: swap ? this.plateX  : this.plateY,
+			};
+		},
+
 		buildM98(macro) {
+			const p = this.cornerParams();
 			return [
 				`M98 P"${MACRO_PATH}/${macro}"`,
-				`A"${this.selectedCorner}"`,
-				`B${this.endmillDia.toFixed(4)}`,
-				`C${this.plateZ.toFixed(4)}`,
-				`D${this.xOffset.toFixed(4)}`,
-				`E${this.yOffset.toFixed(4)}`,
-				`F${this.zOffset.toFixed(4)}`,
-				`G${Math.round(this.feedrate)}`,
+				`A${p.xDirection}`,
+				`B${p.yDirection}`,
+				`C${p.xProbeDirection}`,
+				`D${p.yProbeDirection}`,
+				`E${this.endmillDia.toFixed(4)}`,
+				`F${this.plateThickness.toFixed(4)}`,
+				`G${p.xOffset.toFixed(4)}`,
+				`H${p.yOffset.toFixed(4)}`,
+				`I${p.xDimension.toFixed(4)}`,
+				`J${p.yDimension.toFixed(4)}`,
+				`K${Math.round(this.feedrate)}`,
 			].join(' ');
 		},
 

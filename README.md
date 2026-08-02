@@ -1,5 +1,7 @@
 # Duet XYZ Probe Panel
 
+![XYZ Probe Panel screenshot](./xyz_probe_control.png)
+
 A [Duet Web Control](https://github.com/Duet3D/DuetWebControl) plugin that adds an on-screen XYZ touch-probe panel — corner probing and individual X/Y/Z axis probing against a touch plate, with configurable plate dimensions, endmill diameter, offsets and feedrate.
 
 > ⚠️ **Pre-release — use with caution.** This plugin has only had limited testing on real hardware. Before relying on it for a real job, verify your probe wiring/configuration and watch the first few probing moves closely so you can hit emergency stop if anything looks wrong.
@@ -7,6 +9,15 @@ A [Duet Web Control](https://github.com/Duet3D/DuetWebControl) plugin that adds 
 ## Why this exists
 
 Ooznest's stock firmware/control panel for the WorkBee CNC includes a built-in XYZ touch-probe panel. If you move to vanilla RepRapFirmware + Duet Web Control (e.g. running a Duet 3 board instead of Ooznest's stock controller), that convenience disappears — there's no equivalent panel out of the box. This plugin brings that functionality back as a DWC plugin, usable on any vanilla RRF/DWC setup, not just Ooznest machines.
+
+The probing routine itself was modeled on Ooznest's own WorkBee XYZ Touch Probe plate — the small rectangular block with a "Start Here" reference hole and a ledge that seats it flush against a stock corner. The plate's dimensions, thickness and offsets are all configurable settings here, though, so this isn't locked to that exact plate — any similarly-shaped touch plate can be used by entering its own measurements.
+
+## How probing works — read this before your first probe
+
+1. Jog the endmill to **approximately** the true X/Y corner of your stock (this is eyeballed — if you're using Ooznest's plate, its "Start Here" hole marks this point and helps you center by feel). Z height at this point doesn't matter much.
+2. Press **Probe Corner** (or one of the individual axis buttons). From there, everything is automatic: the machine retracts, moves to the plate's center and probes Z, then moves out past each edge in turn, drops to the plate's side height, and probes inward to find X and Y.
+
+> ⚠️ **This automated movement trusts your eyeballed starting position.** The moves to the plate's center and edges are calculated blindly from wherever you jogged to, using your Plate Dimension/Offset settings — there's no feedback until the probe actually triggers. If your starting position is badly off (not actually near the stock's true corner), the routine can miss the plate, fail to find an edge within its search range, or in the worst case drive the endmill into the plate, a clamp, or the table. Always watch the first probe of a session closely, with a hand near emergency stop.
 
 ## Requirements
 
@@ -26,14 +37,15 @@ On first launch, the plugin automatically deploys its macro files to `0:/macros/
 
 **Main controls:**
 - **Endmill Diameter** — diameter of the bit currently in the spindle. Used to compensate the probed position for the bit's radius.
-- **Probe Location** — which corner of the touch plate you're probing against (Front Left / Front Right / Back Left / Back Right).
-- **Probe Corner** — probes Z, then X, then Y at the selected corner in one pass, and sets the work coordinate system (WCS) origin.
-- **X / Y / Z buttons** — probe a single axis only, useful for re-zeroing one axis without repeating the full corner sequence.
+- **Probe Location** — which corner of the touch plate you're probing against (Front Left / Front Right / Back Left / Back Right). If you're using a plate with a ledge like Ooznest's, rotate the physical plate so the ledge sits flush against whichever corner you select here.
+- **Probe Corner** — runs the full automatic sequence described above and sets the work coordinate system (WCS) origin.
+- **X / Y / Z buttons** — probe a single axis only, useful for re-zeroing one axis without repeating the full corner sequence. The Z button alone just probes straight down wherever the machine currently is, without any XY positioning.
 
 **Touch Probe Settings** (collapsible section):
 - **Feedrate** — probing speed (mm/min).
-- **Plate Thickness / Z Dimension** — thickness of your touch plate, since Z-probing touches its top face rather than the true stock surface.
-- **X / Y / Z-Axis Offset** — distance from the plate's reference edges to your actual workpiece zero. The plate is assumed to sit flush against the corner being probed, so X/Y zero is simply `offset + endmill radius` from the probed edge — no plate footprint size needed for that math.
+- **Plate X / Y Dimension** — full footprint of your touch plate, used to calculate the move to its center and past its edges.
+- **Plate Thickness** — thickness of the plate, needed because Z-probing touches its top face rather than the true stock surface.
+- **X / Y-Axis Offset** — distance from your starting position (the "Start Here" point) to the plate's near edge along each axis.
 
 **Reset to Defaults** resets these settings fields back to their built-in defaults. It does **not** touch the macro files on the SD card.
 
@@ -43,7 +55,7 @@ On first launch, the plugin automatically deploys its macro files to `0:/macros/
 
 The actual probing logic lives in plain RepRapFirmware G-code macro files on the SD card (`0:/macros/ProbePanel/probe-corner.g`, `probe-x.g`, `probe-y.g`, `probe-z.g`). You're free to open and edit these directly — add moves, change the probe order, tune retract distances, whatever you need.
 
-What makes them "dynamic" is that the numeric values from the panel (endmill diameter, plate dimensions, offsets, feedrate, selected corner) are **not hardcoded** into the macro files. Instead, every time you press a button, the plugin sends the macro call with your current panel settings as parameters (e.g. `M98 P"probe-corner.g" A"FL" B6.3500 ...`), and the macro reads them via RRF's `param.*` syntax. That means changing a setting in the panel (say, switching from a 6mm to a 3mm endmill between jobs) takes effect immediately on your very next probe — no macro rewrite or redeploy required.
+What makes them "dynamic" is that the values from the panel (endmill diameter, plate dimensions, offsets, feedrate, and the direction signs derived from your selected corner) are **not hardcoded** into the macro files. Instead, every time you press a button, the plugin sends the macro call with your current panel settings as parameters, and the macro reads them via RRF's `param.*` syntax. That means changing a setting in the panel (say, switching from a 6mm to a 3mm endmill between jobs) takes effect immediately on your very next probe — no macro rewrite or redeploy required.
 
 The one thing to be careful of: if you edit a macro and replace one of the `param.*` references with a fixed number, that panel field will silently stop having any effect on that macro. Each macro file has a comment block at the top listing which `param.*` variables it uses and what they mean.
 
@@ -51,17 +63,21 @@ The one thing to be careful of: if you edit a macro and replace one of the `para
 
 The macro files aren't hand-maintained on the SD card as the source of truth — they're generated from templates in **[`macros.js`](./macros.js)**. If you want to change the probing logic that ships with the plugin (as opposed to just editing your own already-deployed copy), edit the G-code template strings in that file.
 
-Each template documents its own parameters, but for reference:
+The corner-direction logic (which way is "into the stock," and the axis swap needed when the plate is rotated for the FR/BL corners) is computed once in `ProbePanel.vue` and sent to the macros as ready-to-use values, so the macros themselves don't need to branch on which corner was selected:
 
 | Parameter | Meaning |
 |---|---|
-| `param.A` | Corner (`"FL"` \| `"FR"` \| `"BL"` \| `"BR"`) |
-| `param.B` | Endmill Diameter (mm) |
-| `param.C` | Plate Thickness / Z Dimension (mm) |
-| `param.D` | X-Axis Offset (mm) |
-| `param.E` | Y-Axis Offset (mm) |
-| `param.F` | Z-Axis Offset (mm) |
-| `param.G` | Feedrate (mm/min) |
+| `param.A` | X direction sign (`+1` or `-1`) |
+| `param.B` | Y direction sign (`+1` or `-1`) |
+| `param.C` | X probe trigger direction (`M585` `S` value: `0` or `1`) |
+| `param.D` | Y probe trigger direction (`M585` `S` value: `0` or `1`) |
+| `param.E` | Endmill Diameter (mm) |
+| `param.F` | Plate Thickness (mm) |
+| `param.G` | X-Axis Offset (mm, corner-adjusted) |
+| `param.H` | Y-Axis Offset (mm, corner-adjusted) |
+| `param.I` | Plate X Dimension (mm, corner-adjusted) |
+| `param.J` | Plate Y Dimension (mm, corner-adjusted) |
+| `param.K` | Feedrate (mm/min) |
 
 ### Building a release zip
 
