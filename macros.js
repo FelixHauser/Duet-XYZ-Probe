@@ -53,6 +53,10 @@ G1 Z{5 + param.F / 2} F{param.K}
 G1 X{(param.I / 2 - param.G) * param.A * -1} F{param.K}
 G90
 G1 X0 Y0 F{param.K}
+
+; Persist the new offset to config-override.g so it survives a reboot
+; (requires M501 in config.g to be reloaded on startup)
+M500
 `
 
 export const PROBE_X = `\
@@ -80,6 +84,10 @@ G1 Y{(param.J / 2 - param.H) * param.B * -1} F{param.K}
 
 G90
 G1 X0 F{param.K}
+
+; Persist the new offset to config-override.g so it survives a reboot
+; (requires M501 in config.g to be reloaded on startup)
+M500
 `
 
 export const PROBE_Y = `\
@@ -107,6 +115,10 @@ G1 X{(param.I / 2 - param.G) * param.A * -1} F{param.K}
 
 G90
 G1 Y0 F{param.K}
+
+; Persist the new offset to config-override.g so it survives a reboot
+; (requires M501 in config.g to be reloaded on startup)
+M500
 `
 
 export const PROBE_Z = `\
@@ -129,6 +141,10 @@ M585 Z-10 F{param.K} P0 S1
 G10 L20 Z{param.F}
 G1 Z5 F{param.K}
 G90
+
+; Persist the new offset to config-override.g so it survives a reboot
+; (requires M501 in config.g to be reloaded on startup)
+M500
 `
 
 export const MACROS = {

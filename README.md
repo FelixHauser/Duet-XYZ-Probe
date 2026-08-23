@@ -24,6 +24,13 @@ The probing routine itself was modeled on Ooznest's own WorkBee XYZ Touch Probe 
 - RepRapFirmware **3.3** or newer — this is a hard requirement, since the macros rely on `param.*` macro-parameter support, which RRF only gained in 3.3.
 - Duet Web Control — **confirmed working on 3.6.x**. See the compatibility note below before installing on an older DWC.
 - A touch probe configured in RepRapFirmware as probe index 0 (`M558 ... P0`)
+- An `M501` line in your own `config.g` — see the note below. Without it, probed offsets won't survive a reboot.
+
+### Persisting your zero across reboots — `M501` in `config.g`
+
+Every probe macro ends with `M500`, which saves the workplace offset it just set to `config-override.g` on the SD card. RepRapFirmware doesn't load that file automatically on startup, though — your `config.g` needs its own `M501` line (typically placed near the end, after your axis/drive setup) to reload it. If you don't have one, add it once; otherwise every offset this plugin sets will be lost the next time the machine powers off or resets, even though it was probed correctly.
+
+`M500` saves everything currently in RAM, not just the workplace offset — for a CNC router that's normally harmless, but keep it in mind if you're also using `config-override.g` to persist something unrelated.
 
 ### DWC version compatibility — please read if you're on DWC 3.5 or older
 
